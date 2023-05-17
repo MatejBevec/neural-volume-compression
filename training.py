@@ -18,12 +18,13 @@ def train_model(dataset, model,
                 lr=2e-4, epochs=3, batch_size=32,
                 scheduler=None, log=True, run_name=None):
     
-    # TODO: init
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    
     n = len(dataset); nb = int(n/batch_size)
     dl = DataLoader(dataset, batch_size=batch_size, num_workers=0)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     loss_func = torch.nn.MSELoss()
-    watched = np.random.permutation(len(dl))[:16] # instances to plot during training
 
     if log:
         if run_name is None: run_name = datetime.datetime.now()
@@ -40,6 +41,7 @@ def train_model(dataset, model,
 
         for i, batch in enumerate(dl):
             #[print(torch.min(a), torch.max(a)) for a in batch]
+            batch = batch.to(device)
             loss = train_step(batch, model, optimizer, loss_func)
             if i%20 == 0:
                 pbar.update(20); pbar.set_description(f"Loss = {loss:.8f}")
@@ -52,8 +54,8 @@ def train_model(dataset, model,
         if log:
             #wandb.log({'End of Epoch': None}, step=((ep+1) * len(dl)))
             wsize = 150; n = 16
-            outs = model(last_batch)[0].detach().numpy()
-            ins = last_batch.detach().numpy()
+            outs = model(last_batch)[0].cpu().detach().numpy()
+            ins = last_batch.cpu().detach().numpy()
 
             ins = ins[:n]; outs = outs[:n]
             ins[:, 0, 0, 0] += 1e-4
@@ -116,11 +118,11 @@ if __name__ == "__main__":
 
     # 8x8x8 variations with zero margin - comparing training params:
 
-    dataset = BlockDataset("data1", blocksize=8, margin=0, save_load=False)
+    dataset = BlockDataset("data", blocksize=8, margin=0, save_load=False)
 
     name = "dense_vae_s8_m0_l32_h128_b64_e8"
     model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
-    model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
+    model = train_model(dataset, model, batch_size=64, epochs=1, run_name=name)
     model.save_model(f"weights/{name}.pt")
 
     name = "dense_vae_s8_m0_l32_h128_b64_e20"
