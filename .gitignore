@@ -1,0 +1,4 @@
+wandb/*
+data/saved/*
+data/*
+__pycache__
