@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     name = "dense_vae_s8_m0_l32_h128_b64_e8"
     model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
-    model = train_model(dataset, model, batch_size=64, epochs=1, run_name=name)
+    model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
     model.save_model(f"weights/{name}.pt")
 
     name = "dense_vae_s8_m0_l32_h128_b64_e20"
