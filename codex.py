@@ -110,8 +110,8 @@ class CodecDCT(Codec):
 class CodecDenseVAE(Codec):
     """Codec based on a pretrained blockwise VAE."""
 
-    def __init__(self, size=8, margin=0,
-                 model_pth="weights/dense_vae_s8_m0_l32_h128_b16_e8.pt"):
+    def __init__(self, size=8, margin=2,
+                 model_pth="weights/dense_vae_s8_m2_l64_h256_b64_e8.pt"):
         
         model_pth = model_pth
         self.model = DenseVAE.load_model(model_pth)
