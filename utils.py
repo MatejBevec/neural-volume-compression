@@ -43,7 +43,8 @@ def save_volume(data, pth, dtype=np.uint8, rgb=False):
         f.write(data)
 
 
-def show_volume(data, origin=(0, 0, 0), spacing=(1, 1, 1), colormap="hot", screenshot=False, wsize=None):
+def show_volume(data, origin=(0, 0, 0), spacing=(1, 1, 1),
+                colormap="hot", screenshot=False, wsize=None, zoom=1.0, rot=0):
     """Visualize a 3D volume using PyVista."""
 
     grid = pv.UniformGrid()
@@ -56,7 +57,9 @@ def show_volume(data, origin=(0, 0, 0), spacing=(1, 1, 1), colormap="hot", scree
     if wsize:
         plotter.window_size = wsize
     plotter.set_background("white")
-    plotter.add_volume(grid, cmap="hot", show_scalar_bar=not screenshot, clim=clim) #opacity_unit_distance=1
+    plotter.add_volume(grid, cmap=colormap, show_scalar_bar=not screenshot, clim=clim)
+    plotter.camera.zoom(zoom)
+    plotter.camera.azimuth = rot
     plotter.show()
     if screenshot:
         return np.array(plotter.screenshot())
@@ -98,23 +101,6 @@ def blockify(data, size=16, margin=0):
 
     return blocks
 
-def _smooth_kernel(s, m):
-    """Return (s+2m, s+2m) ones array with m wide linear falloff to zero."""
-
-    sz = s+2*m
-    ker = np.ones((sz, sz, sz))
-    step = 1 - 1/(m+1)
-
-    # for i in range(m):
-    #     ker[i:sz-i, i:sz-i, i:sz-i] += step
-
-    for i in range(m):
-        ker[:i+1, :, :] -= step; ker[sz-i-1:, :, :] *= step
-        ker[:, :i+1, :] -= step; ker[:, sz-i-1:, :] *= step
-        ker[:, :, :i+1] -= step; ker[:, :, sz-i-1:] *= step
-
-    print("ker", ker.shape)
-    return ker
 
 def _smooth_kernel2(s, m):
 
@@ -128,7 +114,6 @@ def _smooth_kernel2(s, m):
                 ker[i*s:(i+1)*s+2*m, j*s:(j+1)*s+2*m, k*s:(k+1)*s+2*m] += ones
     ker = ker[s:2*s+2*m, s:2*s+2*m, s:2*s+2*m]
     ker = 1/ker
-    print(ker)
     return ker
 
 
@@ -144,13 +129,13 @@ def unblockify(blocks, margin=0, interpol=False):
 
     if interpol:
         ker = _smooth_kernel2(size, m)
-        print(ker)
+        #print(ker)
     else:
         ker = np.zeros((size+2*m, size+2*m, size+2*m))
         ker[m:size+m, m:size+m, m:size+m] = 1
 
-    print(blocks.shape)
-    print(vol.shape)
+    #print(blocks.shape)
+    #print(vol.shape)
 
     for i in range(ybl):
         for j in range(xbl):
@@ -197,10 +182,7 @@ if __name__ == "__main__":
     # vol = load_volume("data/stag_beetle_832x832x494_1x1x1_uint16.raw", (832, 832, 494), dtype=np.uint16)
     vol = load_volume("data/tacc_turbulence_256x256x256_1x1x1_uint8.raw", (256, 256, 256), dtype=np.uint8)
 
-    print(vol.shape)
-
     blocks = blockify(vol, size=8, margin=1)
-    print(blocks.shape)
 
     rec = unblockify(blocks, margin=1, interpol=True)
     show_volume(rec)

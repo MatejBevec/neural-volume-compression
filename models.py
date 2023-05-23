@@ -15,6 +15,7 @@ def load_model(model, pth):
 # BASIC CONVOLUTIONAL VAE
 
 class ConvVAE(nn.Module):
+    """Configurable convolutional varational autoencoder (TBA)"""
 
     def __init__(self, in_shape,
                         latent_dim=64,
@@ -135,6 +136,7 @@ class ConvVAE(nn.Module):
 
 
 class DenseVAE(nn.Module):
+    """Configurable fully-connected variational autoencoder."""
 
     def __init__(self, in_shape,
                         latent_dim=64,
@@ -200,6 +202,8 @@ class DenseVAE(nn.Module):
     
 
     def save_model(self, pth):
+        """Save this mode'sl params and state to file."""
+
         torch.save({
             "state_dict": self.state_dict(),
             "in_shape": (self.ch, self.h, self.w),
@@ -209,6 +213,8 @@ class DenseVAE(nn.Module):
 
     @staticmethod
     def load_model(pth):
+        """Instantiate a saved DenseVAE model from file."""
+
         params = torch.load(pth)
         model = DenseVAE(params["in_shape"], params["latent_dim"], params["hidden_dims"])
         model.load_state_dict(params["state_dict"])

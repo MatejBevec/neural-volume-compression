@@ -13,10 +13,14 @@ import wandb
 from models import save_model, load_model
 from utils import to_dtype, to_standard, show_volume
 
+
+
 def train_model(dataset, model,
                 optimizer="adam", loss="mse",
                 lr=2e-4, epochs=3, batch_size=32,
                 scheduler=None, log=True, run_name=None):
+    
+    """Train a given eutoencoder model on a volume block dataset."""
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -27,9 +31,9 @@ def train_model(dataset, model,
     loss_func = torch.nn.MSELoss()
 
     if log:
-        if run_name is None: run_name = datetime.datetime.now()
+        if run_name is None: run_name = str(datetime.datetime.now())
         wandb.config = {"learning_rate": lr, "epochs": epochs, "batch_size": batch_size}
-        wandb.init(project='volume-compression', name=run_name)
+        wandb.init(project='volume-compression', name=run_name, reinit=True)
         wandb.watch(model, log="all", log_freq=10, log_graph=True)
 
     for ep in range(epochs):
@@ -75,13 +79,17 @@ def train_model(dataset, model,
 
     return model
 
+
 def train_step(batch, model, optim, loss_func):
+    """Train loop for a single block batch."""
+    
     y = model(batch)[0]
     loss = loss_func(batch, y)
     optim.zero_grad()
     loss.backward()
     optim.step()
     return loss
+
 
 
 if __name__ == "__main__":
@@ -100,67 +108,69 @@ if __name__ == "__main__":
     # save_model(model, "weights/dense_vae_d.pt")
 
 
-    CONF_DIM = {
-        "dense_vae_s8_m0_h128_l32_e10_b64": {
-            "size": 8,
-            "margin": 0,
-            "hidden": [128],
-            "latent": 32,
-            "epochs": 10,
-            "batch_size": 64
-        }
-    }
-
-
-
 
     # TRAINING ON REMOTE MACHINE
 
     # 8x8x8 variations with zero margin - comparing training params:
 
-    dataset = BlockDataset("data", blocksize=8, margin=0, save_load=False)
+    #dataset = BlockDataset("data", blocksize=8, margin=0, save_load=False)
 
-    name = "dense_vae_s8_m0_l32_h128_b64_e8"
-    model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
+    # name = "dense_vae_s8_m0_l32_h128_b64_e8"
+    # model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
+    # model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+    # name = "dense_vae_s8_m0_l32_h128_b64_e20"
+    # model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
+    # model = train_model(dataset, model, batch_size=64, epochs=20, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+    # name = "dense_vae_s8_m0_l32_h128_b16_e8"
+    # model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
+    # model = train_model(dataset, model, batch_size=16, epochs=8, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+    # name = "dense_vae_s8_m0_l32_h128_b64_e8_l3_lr2-5"
+    # model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
+    # model = train_model(dataset, model, lr=2e-5, batch_size=64, epochs=8, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+    # name = "dense_vae_s8_m0_l32_h128_b64_e8_l3_lr1-3"
+    # model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
+    # model = train_model(dataset, model, lr=1e-3, batch_size=64, epochs=8, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+    # # 8x8x8 variations with zero margin - comparing model dimensionality:
+
+    # name = "dense_vae_s8_m0_l16_h128_b64_e8"
+    # model = DenseVAE([8, 8, 8], latent_dim=16, hidden_dims=[128])
+    # model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+    # name = "dense_vae_s8_m0_l64_h256_b64_e8"
+    # model = DenseVAE([8, 8, 8], latent_dim=64, hidden_dims=[256])
+    # model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+    # name = "dense_vae_s8_m0_l32_h256-128_b64_e8"
+    # model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[256, 128])
+    # model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
+    # model.save_model(f"weights/{name}.pt")
+
+
+
+    # 8x8x8 variations with margin of 2:
+
+    dataset = BlockDataset("data", blocksize=8, margin=2, save_load=False)
+
+    name = "dense_vae_s8_m2_l32_h128_b64_e8"
+    model = DenseVAE([12, 12, 12], latent_dim=32, hidden_dims=[128])
     model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
     model.save_model(f"weights/{name}.pt")
 
-    name = "dense_vae_s8_m0_l32_h128_b64_e20"
-    model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
-    model = train_model(dataset, model, batch_size=64, epochs=20, run_name=name)
-    model.save_model(f"weights/{name}.pt")
-
-    name = "dense_vae_s8_m0_l32_h128_b16_e8"
-    model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
-    model = train_model(dataset, model, batch_size=16, epochs=8, run_name=name)
-    model.save_model(f"weights/{name}.pt")
-
-    name = "dense_vae_s8_m0_l32_h128_b64_e8_l3_lr2-5"
-    model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
-    model = train_model(dataset, model, lr=2e-5, batch_size=64, epochs=8, run_name=name)
-    model.save_model(f"weights/{name}.pt")
-
-    name = "dense_vae_s8_m0_l32_h128_b64_e8_l3_lr1-3"
-    model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[128])
-    model = train_model(dataset, model, lr=1e-3, batch_size=64, epochs=8, run_name=name)
-    model.save_model(f"weights/{name}.pt")
-
-    # 8x8x8 variations with zero margin - comparing model dimensionality:
-
-    name = "dense_vae_s8_m0_l16_h128_b64_e8"
-    model = DenseVAE([8, 8, 8], latent_dim=16, hidden_dims=[128])
+    name = "dense_vae_s8_m2_l64_h256_b64_e8"
+    model = DenseVAE([12, 12, 12], latent_dim=64, hidden_dims=[256])
     model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
     model.save_model(f"weights/{name}.pt")
-
-    name = "dense_vae_s8_m0_l64_h256_b64_e8"
-    model = DenseVAE([8, 8, 8], latent_dim=64, hidden_dims=[256])
-    model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
-    model.save_model(f"weights/{name}.pt")
-
-    name = "dense_vae_s8_m0_l32_h256-128_b64_e8"
-    model = DenseVAE([8, 8, 8], latent_dim=32, hidden_dims=[256, 128])
-    model = train_model(dataset, model, batch_size=64, epochs=8, run_name=name)
-    model.save_model(f"weights/{name}.pt")
-
 
 
